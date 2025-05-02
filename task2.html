@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task-2: Stopwatch</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap');
+
+    body {
+      margin: 0;
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(135deg, #ffe4e6, #f9c2d3);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      color: #4a2e3b;
+      overflow: hidden;
+    }
+
+    .container {
+      background: rgba(255, 245, 247, 0.95);
+      padding: 40px 50px;
+      border-radius: 25px;
+      box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+      border: 2px solid #ffd1dc;
+      text-align: center;
+      max-width: 500px;
+      width: 100%;
+      animation: fadeInUp 1.2s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    h1 {
+      margin-bottom: 25px;
+      color: #8b5a6b;
+      font-size: 2em;
+      font-weight: 600;
+    }
+
+    .stopwatch #display {
+      font-size: 3.5em;
+      margin: 25px 0;
+      font-weight: bold;
+      color: #5c3a4a;
+      transition: color 0.4s ease;
+    }
+
+    .running-glow {
+      text-shadow: 0 0 10px #f8a1b9;
+      color: #8b5a6b !important;
+    }
+
+    #message {
+      margin-top: 15px;
+      font-size: 1.2em;
+      color: #8b5a6b;
+      font-weight: 500;
+    }
+
+    .buttons button {
+      background: linear-gradient(135deg, #ffd1dc, #f8b1c6);
+      border: none;
+      padding: 14px 25px;
+      margin: 10px 8px;
+      border-radius: 30px;
+      font-size: 1.1em;
+      color: #4a2e3b;
+      cursor: pointer;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, background 0.4s;
+    }
+
+    .buttons button:hover {
+      background: linear-gradient(135deg, #f8b1c6, #ff9ab9);
+      transform: translateY(-3px);
+    }
+
+    .buttons button:disabled {
+      background: #f5e6ea;
+      color: #c0a7b0;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    #laps {
+      list-style: none;
+      padding: 0;
+      margin-top: 25px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    #laps li {
+      background: #ffe4e6;
+      margin: 8px 0;
+      padding: 10px;
+      border-radius: 12px;
+      font-weight: 500;
+      color: #5c3a4a;
+      opacity: 0;
+      animation: fadeIn 0.6s forwards;
+    }
+
+    #laps li:nth-child(even) {
+      background: #ffd1dc;
+    }
+
+    @keyframes fadeIn {
+      to { opacity: 1; }
+    }
+
+    .blinking {
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⏱️ Stopwatch</h1>
+    <div class="stopwatch">
+      <div id="display">00:00:00</div>
+      <div id="message"></div>
+      <div class="buttons">
+        <button id="startBtn" onclick="startStop()">Start</button>
+        <button id="pauseBtn" onclick="pause()" disabled>Pause</button>
+        <button id="stopBtn" onclick="stop()" disabled>Stop</button>
+        <button id="resetBtn" onclick="reset()">Reset</button>
+        <button id="lapBtn" onclick="lap()" disabled>Lap</button>
+      </div>
+    </div>
+    <ul id="laps"></ul>
+  </div>
+
+  <script>
+    let timer;
+    let isRunning = false;
+    let isPaused = false;
+    let startTime;
+    let elapsedTime = 0;
+
+    const display = document.getElementById("display");
+    const message = document.getElementById("message");
+    const laps = document.getElementById("laps");
+
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const lapBtn = document.getElementById("lapBtn");
+
+    function formatTime(ms) {
+      const date = new Date(ms);
+      const min = String(date.getUTCMinutes()).padStart(2, "0");
+      const sec = String(date.getUTCSeconds()).padStart(2, "0");
+      const msPart = String(Math.floor(date.getUTCMilliseconds() / 10)).padStart(2, "0");
+      return `${min}:${sec}:${msPart}`;
+    }
+
+    function updateDisplay() {
+      display.textContent = formatTime(elapsedTime);
+    }
+
+    function setButtonStates({ running = false, paused = false }) {
+      startBtn.textContent = paused ? "Resume" : "Start";
+      startBtn.disabled = running;
+      pauseBtn.disabled = !running;
+      stopBtn.disabled = !running && !paused;
+      lapBtn.disabled = !running;
+    }
+
+    function startStop() {
+      if (!isRunning) {
+        startTime = Date.now() - elapsedTime;
+        timer = setInterval(() => {
+          elapsedTime = Date.now() - startTime;
+          updateDisplay();
+        }, 10);
+        isRunning = true;
+        isPaused = false;
+        display.classList.add("running-glow");
+        display.classList.remove("blinking");
+        message.textContent = "";
+        setButtonStates({ running: true });
+      }
+    }
+
+    function pause() {
+      if (isRunning) {
+        clearInterval(timer);
+        elapsedTime = Date.now() - startTime;
+        isRunning = false;
+        isPaused = true;
+        display.classList.add("blinking");
+        message.textContent = "⏸️ Paused at: " + formatTime(elapsedTime);
+        setButtonStates({ paused: true });
+      }
+    }
+
+    function stop() {
+      if (isRunning || isPaused) {
+        clearInterval(timer);
+        isRunning = false;
+        isPaused = false;
+        updateDisplay();
+        display.classList.remove("blinking", "running-glow");
+        message.textContent = "⏹️ Stopwatch stopped. Total time: " + formatTime(elapsedTime);
+        setButtonStates({});
+      }
+    }
+
+    function reset() {
+      clearInterval(timer);
+      elapsedTime = 0;
+      isRunning = false;
+      isPaused = false;
+      updateDisplay();
+      laps.innerHTML = "";
+      display.classList.remove("blinking", "running-glow");
+      message.textContent = "";
+      setButtonStates({});
+    }
+
+    function lap() {
+      if (isRunning) {
+        const li = document.createElement("li");
+        li.textContent = formatTime(elapsedTime);
+        laps.appendChild(li);
+        laps.scrollTop = laps.scrollHeight;
+      }
+    }
+
+    // Initial state
+    updateDisplay();
+  </script>
+</body>
+</html>
